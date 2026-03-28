@@ -182,11 +182,16 @@ def generate_clash_yaml(nodes):
 
 class SubHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
+        # 解析请求的路径和参数
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        query = parsed_url.query
+        
         user_agent = self.headers.get('User-Agent', '').lower()
-        query = urllib.parse.urlparse(self.path).query
         is_clash = 'clash' in user_agent or 'mihomo' in user_agent or 'meta' in user_agent or 'clash' in query
         
-        if self.path.startswith('/') or self.path == '':
+        # 只要路径是以 / 开头的（根路径），就返回内容
+        if path == '/' or path == '':
             self.send_response(200)
             
             if is_clash:

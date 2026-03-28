@@ -32,8 +32,11 @@ def parse_node(uri):
                 node['servername'] = data.get('sni') or data.get('host')
                 if data.get('fp'): node['client-fingerprint'] = data.get('fp')
                 if data.get('alpn'): node['alpn'] = data.get('alpn').split(',') if isinstance(data.get('alpn'), str) else data.get('alpn')
+                if data.get('insecure') == '1' or data.get('allowInsecure') == '1':
+                    node['skip-cert-verify'] = True
                 
             if node['network'] == 'ws':
+                node['packet-encoding'] = 'packet'
                 node['ws-opts'] = {'path': data.get('path', '/')}
                 if data.get('host'): node['ws-opts']['headers'] = {'Host': data.get('host')}
             elif node['network'] == 'h2':
@@ -41,6 +44,7 @@ def parse_node(uri):
             elif node['network'] == 'grpc':
                 node['grpc-opts'] = {'grpc-service-name': data.get('path', '')}
             elif node['network'] == 'xhttp':
+                node['packet-encoding'] = 'xudp'
                 node['xhttp-opts'] = {'path': data.get('path', '/'), 'mode': data.get('mode', 'auto')}
                 if data.get('host'): node['xhttp-opts']['headers'] = {'Host': data.get('host')}
             return node
@@ -75,7 +79,7 @@ def parse_node(uri):
                 'server': host,
                 'port': port,
                 'uuid': uuid,
-                'cipher': 'auto',
+                'encryption': params.get('encryption', 'none'),
                 'udp': True,
                 'tls': is_tls,
                 'network': params.get('type', 'tcp'),
@@ -83,6 +87,9 @@ def parse_node(uri):
                 'client-fingerprint': params.get('fp', 'chrome')
             }
             
+            if is_tls and (params.get('insecure') == '1' or params.get('allowInsecure') == '1'):
+                node['skip-cert-verify'] = True
+
             if is_reality:
                 node['reality'] = True
                 node['reality-opts'] = {
@@ -94,11 +101,13 @@ def parse_node(uri):
                 node['flow'] = params.get('flow')
             
             if node['network'] == 'ws':
+                node['packet-encoding'] = 'packet'
                 node['ws-opts'] = {'path': params.get('path', '/')}
                 if params.get('host'): node['ws-opts']['headers'] = {'Host': params.get('host')}
             elif node['network'] == 'grpc':
                  node['grpc-opts'] = {'grpc-service-name': params.get('serviceName', '')}
             elif node['network'] == 'xhttp':
+                node['packet-encoding'] = 'xudp'
                 node['xhttp-opts'] = {
                     'path': params.get('path', '/'),
                     'mode': params.get('mode', 'auto')

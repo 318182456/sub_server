@@ -21,7 +21,9 @@ fi
 
 # 交互式获取订阅密码
 echo ""
-read -p "请输入订阅密码 (留空则不设密码, 直接回车): " SUB_PASS
+read -p "请输入订阅后台管理密码 (SUB_PASS): " SUB_PASS
+read -p "请输入 Akile Cloud Client ID (AKILE_CLIENT): " AKILE_CLIENT
+read -p "请输入 Akile Cloud Secret (AKILE_SECRET): " AKILE_SECRET
 
 echo ""
 echo "==================================="
@@ -73,7 +75,10 @@ cp ./sub-server.service /etc/systemd/system/sub-server.service
 # 如果设置了密码，写入服务环境变量
 if [ -n "$SUB_PASS" ]; then
     echo "正在配置订阅密码..."
-    sed -i "/\[Service\]/a Environment=\"SUB_PASS=$SUB_PASS\"" /etc/systemd/system/sub-server.service
+    sed -i "/\[Service\]/a Environment=SUB_PASS=$SUB_PASS
+Environment=AKILE_CLIENT=$AKILE_CLIENT
+Environment=AKILE_SECRET=$AKILE_SECRET
+" /etc/systemd/system/sub-server.service
 fi
 
 systemctl daemon-reload

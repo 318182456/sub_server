@@ -73,9 +73,12 @@ def parse_node(uri):
             port = int(host_port[1])
             name = urllib.parse.unquote(parsed.fragment) if parsed.fragment else host
             
+            # 修正：根据原始 URI 判定实际协议头，因为接下来 parsed.scheme 会被强制设为 vless
+            actual_scheme = 'anytls' if uri.startswith('anytls://') else 'any-reality' if uri.startswith('any-reality://') else 'vless'
+            
             # 检测是否为 Reality 或 TLS (即使没有明确的 security 参数)
-            is_anytls = parsed.scheme in ['anytls', 'any-reality']
-            is_reality = params.get('security') == 'reality' or bool(params.get('pbk')) or parsed.scheme == 'any-reality'
+            is_anytls = actual_scheme in ['anytls', 'any-reality']
+            is_reality = params.get('security') == 'reality' or bool(params.get('pbk')) or actual_scheme == 'any-reality'
             is_tls = params.get('security') == 'tls' or is_reality or bool(params.get('flow')) or is_anytls
             
             node = {

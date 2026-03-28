@@ -23,29 +23,29 @@ echo ""
 echo "==================================="
 echo "2. 配置服务文件"
 echo "==================================="
-# 创建需要的目录
-mkdir -p /root/agsbx/
+# 创建下载与配置目录
+mkdir -p /root/sub_server
+cd /root/sub_server
 
 GITHUB_RAW_URL="https://raw.githubusercontent.com/318182456/sub_server/main"
 
-# 检查并下载 sub_server.py
-if [ ! -f "./sub_server.py" ]; then
-    echo "未在本地找到 sub_server.py，正在下载..."
-    curl -sL ${GITHUB_RAW_URL}/sub_server.py -o sub_server.py
-fi
+# 强制下载最新的 sub_server.py
+echo "正在从 GitHub 获取最新的 sub_server.py..."
+curl -sL ${GITHUB_RAW_URL}/sub_server.py -o sub_server.py
 
-# 检查并下载 sub-server.service
-if [ ! -f "./sub-server.service" ]; then
-    echo "未在本地找到 sub-server.service，正在下载..."
-    curl -sL ${GITHUB_RAW_URL}/sub-server.service -o sub-server.service
-fi
+# 强制下载最新的 sub-server.service
+echo "正在从 GitHub 获取最新的 sub-server.service..."
+curl -sL ${GITHUB_RAW_URL}/sub-server.service -o sub-server.service
 
 if [ ! -f "./sub_server.py" ]; then
     echo "错误：无法获取 sub_server.py，请检查网络！"
     exit 1
 fi
 
-# 拷贝代码
+# 创建业务目录
+mkdir -p /root/agsbx/
+
+# 从子文件夹拷贝代码
 cp ./sub_server.py /root/agsbx/sub_server.py
 chmod +x /root/agsbx/sub_server.py
 

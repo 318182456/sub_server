@@ -32,12 +32,14 @@ def parse_node(uri):
                 node['servername'] = data.get('sni') or data.get('host')
                 if data.get('fp'): node['client-fingerprint'] = data.get('fp')
                 if data.get('alpn'): node['alpn'] = data.get('alpn').split(',') if isinstance(data.get('alpn'), str) else data.get('alpn')
-                if data.get('insecure') == '1' or data.get('allowInsecure') == '1':
-                    node['skip-cert-verify'] = True
+                node['skip-cert-verify'] = True # 默认强制开启，解决部分节点证书问题
                 
             if node['network'] == 'ws':
                 node['packet-encoding'] = 'packet'
-                node['ws-opts'] = {'path': data.get('path', '/')}
+                node['ws-opts'] = {
+                    'path': data.get('path', '/'),
+                    'v2ray-http-upgrade': True # 开启最新传输优化
+                }
                 if data.get('host'): node['ws-opts']['headers'] = {'Host': data.get('host')}
             elif node['network'] == 'h2':
                 node['h2-opts'] = {'path': data.get('path', '/'), 'host': [data.get('host')] if data.get('host') else []}
@@ -88,9 +90,9 @@ def parse_node(uri):
                 'client-fingerprint': params.get('fp', 'chrome')
             }
             
-            if is_tls and (params.get('insecure') == '1' or params.get('allowInsecure') == '1'):
-                node['skip-cert-verify'] = True
-
+            if is_tls:
+                node['skip-cert-verify'] = True # 默认强制开启跳过证书验证
+            
             if is_reality:
                 node['reality'] = True
                 node['reality-opts'] = {
@@ -104,7 +106,10 @@ def parse_node(uri):
             
             if node['network'] == 'ws':
                 node['packet-encoding'] = 'packet'
-                node['ws-opts'] = {'path': params.get('path', '/')}
+                node['ws-opts'] = {
+                    'path': params.get('path', '/'),
+                    'v2ray-http-upgrade': True
+                }
                 if params.get('host'): node['ws-opts']['headers'] = {'Host': params.get('host')}
             elif node['network'] == 'grpc':
                  node['grpc-opts'] = {'grpc-service-name': params.get('serviceName', '')}

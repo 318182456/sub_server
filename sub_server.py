@@ -15,7 +15,7 @@ def parse_node(uri):
     try:
         if uri.startswith('vmess://'):
             data = json.loads(base64.b64decode(uri[8:]).decode('utf-8'))
-            return {
+            node = {
                 'name': data.get('ps', 'vmess-node'),
                 'type': 'vmess',
                 'server': data.get('add'),
@@ -25,22 +25,48 @@ def parse_node(uri):
                 'cipher': data.get('scy', 'auto'),
                 'udp': True,
                 'tls': data.get('tls') == 'tls',
-                'sni': data.get('sni') or data.get('host'),
-                'network': data.get('net', 'tcp'),
-                'client-fingerprint': data.get('fp', 'chrome'),
-                'ws-opts': {'path': data.get('path'), 'headers': {'Host': data.get('host')}} if data.get('net') == 'ws' else None
+                'network': data.get('net', 'tcp')
             }
-        elif uri.startswith('vless://'):
-            parsed = urllib.parse.urlparse(uri)
+            if node['tls']:
+                node['servername'] = data.get('sni') or data.get('host')
+                if data.get('fp'): node['client-fingerprint'] = data.get('fp')
+                if data.get('alpn'): node['alpn'] = data.get('alpn').split(',') if isinstance(data.get('alpn'), str) else data.get('alpn')
+                
+            if node['network'] == 'ws':
+                node['ws-opts'] = {'path': data.get('path', '/')}
+                if data.get('host'): node['ws-opts']['headers'] = {'Host': data.get('host')}
+            elif node['network'] == 'h2':
+                node['h2-opts'] = {'path': data.get('path', '/'), 'host': [data.get('host')] if data.get('host') else []}
+            elif node['network'] == 'grpc':
+                node['grpc-opts'] = {'grpc-service-name': data.get('path', '')}
+            elif node['network'] == 'xhttp':
+                node['xhttp-opts'] = {'path': data.get('path', '/'), 'mode': data.get('mode', 'auto')}
+                if data.get('host'): node['xhttp-opts']['headers'] = {'Host': data.get('host')}
+            return node
+            
+        elif uri.startswith(('vless://', 'anytls://', 'any-reality://')):
+            # 处理协议头
+            if uri.startswith('vless://'):
+                rest = uri[8:]
+            elif uri.startswith('anytls://'):
+                rest = uri[9:]
+            else:
+                rest = uri[14:]
+            
+            # 由于 anytls 可能包含特殊字符，直接用正则或 urlparse
+            parsed = urllib.parse.urlparse('vless://' + rest)
             params = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
             
-            # vless://uuid@host:port?query#name
             userinfo = parsed.netloc.split('@')
             uuid = userinfo[0]
             host_port = userinfo[1].split(':')
             host = host_port[0]
             port = int(host_port[1])
             name = urllib.parse.unquote(parsed.fragment) if parsed.fragment else host
+            
+            # 检测是否为 Reality 或 TLS (即使没有明确的 security 参数)
+            is_reality = params.get('security') == 'reality' or bool(params.get('pbk'))
+            is_tls = params.get('security') == 'tls' or is_reality or bool(params.get('flow'))
             
             node = {
                 'name': name,
@@ -50,28 +76,33 @@ def parse_node(uri):
                 'uuid': uuid,
                 'cipher': 'auto',
                 'udp': True,
-                'tls': params.get('security') in ['tls', 'reality'],
-                'servername': params.get('sni', host),
+                'tls': is_tls,
                 'network': params.get('type', 'tcp'),
+                'servername': params.get('sni') or params.get('host') or host,
                 'client-fingerprint': params.get('fp', 'chrome')
             }
-            if params.get('security') == 'reality':
+            
+            if is_reality:
+                node['reality'] = True
                 node['reality-opts'] = {
                     'public-key': params.get('pbk', ''),
                     'short-id': params.get('sid', '')
                 }
+            
             if params.get('flow'):
                 node['flow'] = params.get('flow')
             
             if node['network'] == 'ws':
-                node['ws-opts'] = {'path': params.get('path', '/'), 'headers': {'Host': params.get('host', '')}}
+                node['ws-opts'] = {'path': params.get('path', '/')}
+                if params.get('host'): node['ws-opts']['headers'] = {'Host': params.get('host')}
             elif node['network'] == 'grpc':
                  node['grpc-opts'] = {'grpc-service-name': params.get('serviceName', '')}
             elif node['network'] == 'xhttp':
                 node['xhttp-opts'] = {
                     'path': params.get('path', '/'),
-                    'extra': {'mode': params.get('mode', 'auto')}
+                    'mode': params.get('mode', 'auto')
                 }
+                if params.get('host'): node['xhttp-opts']['headers'] = {'Host': params.get('host')}
             return node
         elif uri.startswith('ss://'):
             # ss://base64(method:password)@host:port#name

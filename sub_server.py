@@ -98,7 +98,8 @@ def parse_node(uri):
                     'short-id': params.get('sid', '')
                 }
             
-            if params.get('flow'):
+            # 只有 TCP 网络才能使用 xtls-rprx-vision 流控
+            if params.get('flow') and node['network'] == 'tcp':
                 node['flow'] = params.get('flow')
             
             if node['network'] == 'ws':

@@ -65,21 +65,25 @@ echo ""
 echo "==================================="
 echo "3. 配置自启动 Systemd 服务"
 echo "==================================="
-if [ ! -f "./sub-server.service" ]; then
-    echo "错误：无法获取 sub-server.service，请检查网络！"
-    exit 1
-fi
+cat <<EOF > /etc/systemd/system/sub-server.service
+[Unit]
+Description=Node Subscription Python Server
+After=network.target
 
-cp ./sub-server.service /etc/systemd/system/sub-server.service
-
-# 如果设置了密码，写入服务环境变量
-if [ -n "$SUB_PASS" ]; then
-    echo "正在配置订阅密码..."
-    sed -i "/\[Service\]/a Environment=SUB_PASS=$SUB_PASS
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/agsbx
+ExecStart=/usr/bin/python3 /root/agsbx/sub_server.py
+Restart=always
+RestartSec=3
+Environment=SUB_PASS=$SUB_PASS
 Environment=AKILE_CLIENT=$AKILE_CLIENT
 Environment=AKILE_SECRET=$AKILE_SECRET
-" /etc/systemd/system/sub-server.service
-fi
+
+[Install]
+WantedBy=multi-user.target
+EOF
 
 systemctl daemon-reload
 systemctl enable sub-server.service

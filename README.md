@@ -20,11 +20,19 @@ apt-get update && apt-get install -y git && git clone https://github.com/3181824
 
 ### 安装过程说明：
 
-1. 自动检查并安装 `python3` 和 `git`。
+1. 自动检查并安装 `python3` 和 `curl`。
 2. 将核心脚本 `sub_server.py` 部署到 `/root/agsbx/` 目录下。
 3. 检查并生成 `/root/agsbx/jh.txt` 节点空文件（您可以往里面写入代理或者订阅的节点信息，每行一个节点）。
 4. 注册并配置系统的 Systemd 服务 (`sub-server.service`) 实现开机自启动。
 5. 脚本运行完成后会输出包含公网IP的订阅链接，例如 `http://<您的IP>:8080/`。
+
+## 客户端支持
+
+本服务端支持多种客户端，并能自动识别：
+
+- **V2Ray / v2rayN / Shadowrocket**: 默认返回 Base64 编码的节点列表。
+- **Clash / Mihomo / Clash Meta**: 自动识别 User-Agent 并返回 **YAML** 配置文件。
+  - 如果自动识别失效，可以在链接末尾添加 `?clash=1` 手动强制返回 YAML 格式，例如：`http://<您的IP>:8080/?clash=1`
 
 ## 常用命令
 

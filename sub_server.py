@@ -39,8 +39,7 @@ def parse_node(uri):
                 path = data.get('path', '/')
                 if not path.startswith('/'): path = '/' + path
                 node['ws-opts'] = {
-                    'path': path,
-                    'v2ray-http-upgrade': True
+                    'path': path
                 }
                 if data.get('host'): node['ws-opts']['headers'] = {'Host': data.get('host')}
             elif node['network'] == 'h2':
@@ -114,8 +113,7 @@ def parse_node(uri):
                 path = params.get('path', '/')
                 if not path.startswith('/'): path = '/' + path
                 node['ws-opts'] = {
-                    'path': path,
-                    'v2ray-http-upgrade': True
+                    'path': path
                 }
                 if params.get('host'): node['ws-opts']['headers'] = {'Host': params.get('host')}
             elif node['network'] == 'grpc':
@@ -237,7 +235,7 @@ def generate_clash_yaml(nodes):
     yaml_content += to_yaml(proxies, 2)
     
     yaml_content += "\nproxy-groups:\n"
-    yaml_content += "  - name: 🚀 自动选择\n    type: url-test\n    url: http://www.gstatic.com/generate_204\n    interval: 300\n    proxies:\n"
+    yaml_content += "  - name: 🚀 自动选择\n    type: url-test\n    url: https://www.gstatic.com/generate_204\n    interval: 300\n    proxies:\n"
     for name in proxy_names: yaml_content += f"      - \"{name}\"\n"
     
     yaml_content += "  - name: 🔰 代理选择\n    type: select\n    proxies:\n      - 🚀 自动选择\n      - DIRECT\n"

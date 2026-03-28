@@ -32,13 +32,15 @@ def parse_node(uri):
                 node['servername'] = data.get('sni') or data.get('host')
                 if data.get('fp'): node['client-fingerprint'] = data.get('fp')
                 if data.get('alpn'): node['alpn'] = data.get('alpn').split(',') if isinstance(data.get('alpn'), str) else data.get('alpn')
-                node['skip-cert-verify'] = True # 默认强制开启，解决部分节点证书问题
+                node['skip-cert-verify'] = True # 针对 Argo 等不稳定节点默认跳过证书验证
                 
             if node['network'] == 'ws':
                 node['packet-encoding'] = 'packet'
+                path = data.get('path', '/')
+                if not path.startswith('/'): path = '/' + path
                 node['ws-opts'] = {
-                    'path': data.get('path', '/'),
-                    'v2ray-http-upgrade': True # 开启最新传输优化
+                    'path': path,
+                    'v2ray-http-upgrade': True
                 }
                 if data.get('host'): node['ws-opts']['headers'] = {'Host': data.get('host')}
             elif node['network'] == 'h2':
@@ -91,7 +93,7 @@ def parse_node(uri):
             }
             
             if is_tls:
-                node['skip-cert-verify'] = True # 默认强制开启跳过证书验证
+                node['skip-cert-verify'] = True 
             
             if is_reality:
                 node['reality'] = True
@@ -105,9 +107,11 @@ def parse_node(uri):
                 node['flow'] = params.get('flow')
             
             if node['network'] == 'ws':
-                node['packet-encoding'] = 'packet'
+                node['packet-encoding'] = 'xudp' # 针对 argosbx 的 VLESS-WS-ENC 进行优化
+                path = params.get('path', '/')
+                if not path.startswith('/'): path = '/' + path
                 node['ws-opts'] = {
-                    'path': params.get('path', '/'),
+                    'path': path,
                     'v2ray-http-upgrade': True
                 }
                 if params.get('host'): node['ws-opts']['headers'] = {'Host': params.get('host')}

@@ -19,6 +19,10 @@ else
     echo "Python3 已安装！"
 fi
 
+# 交互式获取订阅密码
+echo ""
+read -p "请输入订阅密码 (留空则不设密码, 直接回车): " SUB_PASS
+
 echo ""
 echo "==================================="
 echo "2. 配置服务文件"
@@ -66,6 +70,12 @@ fi
 
 cp ./sub-server.service /etc/systemd/system/sub-server.service
 
+# 如果设置了密码，写入服务环境变量
+if [ -n "$SUB_PASS" ]; then
+    echo "正在配置订阅密码..."
+    sed -i "/\[Service\]/a Environment=\"SUB_PASS=$SUB_PASS\"" /etc/systemd/system/sub-server.service
+fi
+
 systemctl daemon-reload
 systemctl enable sub-server.service
 systemctl restart sub-server.service
@@ -83,7 +93,7 @@ if [ -z "$PUBLIC_IP" ]; then
     PUBLIC_IP="您的服务器IP"
 fi
 
-echo "您的订阅链接是: http://${PUBLIC_IP}:8080/"
+echo "您的订阅链接是: http://${PUBLIC_IP}:8080/${SUB_PASS}"
 echo "（如果无法访问，请检查服务器防火墙/安全组是否放行了 8080 端口）"
 echo ""
 echo "【常用命令】"

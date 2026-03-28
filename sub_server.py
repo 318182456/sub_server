@@ -9,6 +9,7 @@ import re
 # 配置项
 PORT = 8080
 FILE_PATH = "/root/agsbx/jh.txt"
+SUB_PASS = os.getenv("SUB_PASS", "") # 从环境变量读取订阅密码
 
 def parse_node(uri):
     """简单解析常见的订阅链接 URI"""
@@ -224,48 +225,52 @@ class SubHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         # 解析请求的路径和参数
         parsed_url = urllib.parse.urlparse(self.path)
-        path = parsed_url.path
+        path = parsed_url.path.strip('/') # 获取路径并去掉首尾斜杠
         query = parsed_url.query
         
+        # 验证密码 (如果设置了 SUB_PASS)
+        if SUB_PASS and path != SUB_PASS:
+            self.send_response(403)
+            self.end_headers()
+            self.wfile.write(f"403 Forbidden: Invalid or missing password. Use /{SUB_PASS} for access.".encode('utf-8'))
+            return
+            
         user_agent = self.headers.get('User-Agent', '').lower()
         is_clash = 'clash' in user_agent or 'mihomo' in user_agent or 'meta' in user_agent or 'clash' in query
         
-        # 只要路径是以 / 开头的（根路径），就返回内容
-        if path == '/' or path == '':
-            self.send_response(200)
-            
-            if is_clash:
-                self.send_header('Content-type', 'application/yaml; charset=utf-8')
-            else:
-                self.send_header('Content-type', 'text/plain; charset=utf-8')
-            
-            # 流量统计信息
-            self.send_header('Subscription-Userinfo', 'upload=0; download=0; total=1073741824000; expire=2062560867')
-            self.end_headers()
-            
-            if os.path.exists(FILE_PATH):
-                try:
-                    with open(FILE_PATH, 'r', encoding='utf-8') as f:
-                        lines = [l.strip() for l in f.readlines() if l.strip()]
-                    
-                    if is_clash:
-                        nodes = [parse_node(l) for l in lines]
-                        content = generate_clash_yaml(nodes)
-                        self.wfile.write(content.encode('utf-8'))
-                    else:
-                        content = "\n".join(lines)
-                        b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-                        self.wfile.write(b64_content.encode('utf-8'))
-                except Exception as e:
-                    msg = f"Error: {e}"
-                    self.wfile.write(base64.b64encode(msg.encode('utf-8')) if not is_clash else msg.encode('utf-8'))
-            else:
-                msg = f"File not found: {FILE_PATH}"
-                self.wfile.write(base64.b64encode(msg.encode('utf-8')) if not is_clash else msg.encode('utf-8'))
+        self.send_response(200)
+        
+        if is_clash:
+            self.send_header('Content-type', 'application/yaml; charset=utf-8')
         else:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"Not Found")
+            self.send_header('Content-type', 'text/plain; charset=utf-8')
+        
+        # 流量统计信息
+        self.send_header('Subscription-Userinfo', 'upload=0; download=0; total=1073741824000; expire=2062560867')
+        self.end_headers()
+        
+        if os.path.exists(FILE_PATH):
+            try:
+                with open(FILE_PATH, 'r', encoding='utf-8') as f:
+                    lines = [l.strip() for l in f.readlines() if l.strip()]
+                
+                if is_clash:
+                    nodes = [parse_node(l) for l in lines]
+                    content = generate_clash_yaml(nodes)
+                    self.wfile.write(content.encode('utf-8'))
+                else:
+                    content = "\n".join(lines)
+                    b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+                    self.wfile.write(b64_content.encode('utf-8'))
+            except Exception as e:
+                msg = f"Error: {e}"
+                self.wfile.write(base64.b64encode(msg.encode('utf-8')).decode('utf-8').encode('utf-8') if not is_clash else msg.encode('utf-8'))
+        else:
+            msg = f"File not found: {FILE_PATH}"
+            if is_clash:
+                self.wfile.write(msg.encode('utf-8'))
+            else:
+                self.wfile.write(base64.b64encode(msg.encode('utf-8')))
 
 if __name__ == '__main__':
     socketserver.TCPServer.allow_reuse_address = True

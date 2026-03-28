@@ -70,8 +70,9 @@ def parse_node(uri):
             name = urllib.parse.unquote(parsed.fragment) if parsed.fragment else host
             
             # 检测是否为 Reality 或 TLS (即使没有明确的 security 参数)
-            is_reality = params.get('security') == 'reality' or bool(params.get('pbk'))
-            is_tls = params.get('security') == 'tls' or is_reality or bool(params.get('flow'))
+            is_anytls = parsed.scheme in ['anytls', 'any-reality']
+            is_reality = params.get('security') == 'reality' or bool(params.get('pbk')) or parsed.scheme == 'any-reality'
+            is_tls = params.get('security') == 'tls' or is_reality or bool(params.get('flow')) or is_anytls
             
             node = {
                 'name': name,
@@ -108,8 +109,10 @@ def parse_node(uri):
                  node['grpc-opts'] = {'grpc-service-name': params.get('serviceName', '')}
             elif node['network'] == 'xhttp':
                 node['packet-encoding'] = 'xudp'
+                path = params.get('path', '/')
+                if not path.startswith('/'): path = '/' + path
                 node['xhttp-opts'] = {
-                    'path': params.get('path', '/'),
+                    'path': path,
                     'mode': params.get('mode', 'auto')
                 }
                 if params.get('host'): node['xhttp-opts']['headers'] = {'Host': params.get('host')}
